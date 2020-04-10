@@ -14,6 +14,9 @@ export default {
   name: "News",
   components: {
     NewsComponent
+  },
+  mounted() {
+    this.$store.dispatch("getNewsArticles");
   }
 };
 </script>

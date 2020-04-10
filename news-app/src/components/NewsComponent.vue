@@ -4,7 +4,7 @@
       <div class="newsEvents__tabs flex">
         <label class="newsEvents__label">Filter by:</label>
         <label class="newsEvents__label" v-bind:class="{ isActive: isAllActive }">
-          <input type="radio" class="newsEvents__radio" v-model="selectedType" value="All">
+          <input type="radio" class="newsEvents__radio" value="All">
           <span>View all</span>
         </label>
         <label
@@ -16,8 +16,8 @@
           <input
             type="radio"
             class="newsEvents__radio"
-            v-model="selectedType"
             v-bind:class="itemType.type"
+            @Click="$store.commit('changeSelectedType', itemType.type)"
             :value="itemType.type"
           >
           <span class="newsEvents__tabIcon" v-bind:class="itemType.type"></span>
@@ -33,23 +33,14 @@
         ref="paginator"
       >
         <!-- article snippet -->
-        <li
-          class="newsEvents__article flex"
+        <ArticleCardComponent
           v-for="(item, index) in paginated('sortedItems')"
           :key="index"
-        >
-          <div class="newsEvents__iconContainer flex">
-            <div class="newsEvents__Img" :class="item.Type"></div>
-          </div>
-          <div class="newsEvents__snippet">
-            <span class="newsEvents__date">{{ item.DateDisplay }}</span>
-            <h3 class="newsEvents__header">{{ item.Title }}</h3>
-            <p>{{ item.HeaderText }}</p>
-            <p>
-              <a v-bind:href="item.LinkUrl" class="arrow-link">read more</a>
-            </p>
-          </div>
-        </li>
+          :title="item.Title"
+          :date="item.DateDisplay"
+          :header="item.HeaderText"
+          :link="item.LinkUrl"
+        />
       </paginate>
       <div class="paginate-container">
         <p class="paginate-info" v-if="$refs.paginator">
@@ -63,64 +54,50 @@
 </template>
 
 <script>
-import axios from "axios";
+import ArticleCardComponent from "@/components/ArticleCardComponent.vue";
 export default {
   data() {
     return {
-      allItems: [],
-      itemTypes: [],
-      itemTypesWithHeading: [],
-      selectedType: "All",
       isActive: false,
       sortDirection: "asc",
       paginate: ["sortedItems"]
     };
   },
-
-  created() {
-    Array.prototype.unique = function() {
-      return this.filter(function(value, index, self) {
-        return self.indexOf(value) === index;
-      });
-    };
-    axios
-      .get(
-        `https://balfourmanson.master.d8digital.com//umbraco/api/NewsAndEventsApi/getall`
-      )
-      .then(response => {
-        // JSON responses are automatically parsed.
-        this.allItems = response.data;
-        this.itemTypes = this.allItems
-          .map(function(x) {
-            return x.Type;
-          })
-          .unique();
-        this.itemTypesWithHeading = this.itemTypes.map(function(type) {
-          var heading =
-            type === "news"
-              ? "News"
-              : type === "comment"
-              ? "Comments"
-              : "Events";
-          return {
-            type: type,
-            typeHeading: heading
-          };
-        });
-      });
+  components: {
+    ArticleCardComponent
   },
 
   computed: {
+    allItems() {
+      return this.$store.state.articles;
+    },
     isAllActive() {
       return this.selectedType === "All";
     },
-    filteredItems: function() {
-      var _this = this;
-      return _this.allItems.filter(function(x) {
-        return _this.selectedType == "All" || x.Type == _this.selectedType;
+    selectedType() {
+      return this.$store.state.selectedType;
+    },
+    filteredItems() {
+      this.$store.getters.filteredItems;
+    },
+    itemTypes() {
+      return this.$store.getters.articleTypes;
+    },
+    itemTypesWithHeading() {
+      if (!this.itemTypes) return;
+
+      return this.itemTypes.map(function(type) {
+        var heading =
+          type === "news" ? "News" : type === "comment" ? "Comments" : "Events";
+        return {
+          type: type,
+          typeHeading: heading
+        };
       });
     },
     sortedItems: function() {
+      if (!filteredItems) return;
+
       var _this = this;
 
       return _this.filteredItems.sort((a, b) => {
